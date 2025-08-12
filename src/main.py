@@ -2,11 +2,7 @@ from textnode import TextNode, TextType
 from pathlib import Path
 from markdown_blocks import markdown_to_html_node, extract_title
 import shutil
-
-def main():
-	node = TextNode("This is some anchor text", TextType.LINK, "https://www.boot.dev")
-	print(node)
-
+import sys
 
 def empty_dir(dst: Path):
 	# remove everything inside dst (but keep the folder itself)
@@ -30,7 +26,7 @@ def copy_dir(src: Path, dst: Path):
 			shutil.copy2(item, target)
 			print(f"copied: {item} -> {target}")
 
-def copy_static_to_public(src_dir="static", dst_dir="public"):
+def copy_static_to_public(src_dir="static", dst_dir="docs"):
 	src = Path(src_dir)
 	dst = Path(dst_dir)
 
@@ -41,7 +37,7 @@ def copy_static_to_public(src_dir="static", dst_dir="public"):
 	empty_dir(dst)
 	copy_dir(src, dst)
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
 	print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
 	md_text = Path(from_path).read_text(encoding="utf-8")
@@ -53,11 +49,20 @@ def generate_page(from_path, template_path, dest_path):
 
 	full_html = template.replace("{{ Title }}", title).replace("{{ Content }}", content_html)
 
+	if basepath != "/":
+		if not basepath.endswith("/"):
+			basepath = basepath + "/"
+		if not basepath.startswith("/"):
+			basepath = "/" + basepath
+
+	full_html = full_html.replace('href="/', f'href="{basepath}')
+	full_html = full_html.replace('src="/', f'scr="{basepath}')
+
 	dest = Path(dest_path)
 	dest.parent.mkdir(parents=True, exist_ok=True)
 	dest.write_text(full_html, encoding="utf-8")
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
 	"""
 	Crawl dir_path_content recursively.
 	For each .md file, render using template_path and write an .html file
@@ -73,12 +78,14 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
 		dest_path = dest_root / html_rel              # public/blog/post.html
 
 		# Reuse your single-file generator (it mkdirs parents)
-		generate_page(md_file, template_path, dest_path)
+		generate_page(md_file, template_path, dest_path, basepath)
 
 
 def main():
+	basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+
 	#1. Delete anything in the public directory
-	public_dir = Path("public")
+	public_dir = Path("docs")
 	empty_dir(public_dir)
 
 	#2. copy all static files from static to public
@@ -88,7 +95,8 @@ def main():
 	generate_pages_recursive(
 		"content",
 		"template.html",
-		"public"
+		"docs",
+		basepath=basepath
 	)
 
 if __name__ == "__main__":
