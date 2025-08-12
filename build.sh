@@ -14,5 +14,6 @@ else
 fi
 
 python3 src/main.py "$BASEPATH"
+touch docs/.nojekyll
 echo "✅ Build finished with basepath: $BASEPATH"
 
