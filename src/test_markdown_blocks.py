@@ -1,5 +1,5 @@
 import unittest
-from markdown_blocks import markdown_to_blocks, BlockType, block_to_block_type
+from markdown_blocks import markdown_to_blocks, BlockType, block_to_block_type, extract_title
 
 class TestMarkdownToBlocks(unittest.TestCase):
 	def test_basic_blocks(self):
@@ -47,6 +47,31 @@ class TestMarkdownToBlocks(unittest.TestCase):
 	def test_block_type_paragraph_fallback(self):
 		block = "Just a normal paragraph with *markdown* **inside**."
 		self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+	def test_extract_title_basic(self):
+		md = "# Hello"
+		self.assertEqual(extract_title(md), "Hello")
+
+	def test_extract_title_trims_spaces(self):
+		md = "   #   My Title   \n\nSome content"
+		self.assertEqual(extract_title(md), "My Title")
+
+	def test_extract_title_ignores_other_headers(self):
+		md = "## Not it\n### Also not it\n# Real One\nParagraph"
+		self.assertEqual(extract_title(md), "Real One")
+
+	def test_extract_title_uses_first_h1(self):
+		md = "# First Title\n\n# Second Title"
+		self.assertEqual(extract_title(md), "First Title")
+
+	def test_extract_title_ignores_no_space_after_hash(self):
+		md = "#Hello (no space)\n\n# Proper Title"
+		self.assertEqual(extract_title(md), "Proper Title")
+
+	def test_extract_title_raises_when_missing(self):
+		md = "No h1 here\n## Subheading only\nParagraph text"
+		with self.assertRaises(ValueError):
+			extract_title(md)
 
 
 if __name__ == "__main__":
